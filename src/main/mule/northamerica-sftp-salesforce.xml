@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="sftp-scheduler-papi" doc:id="07fdb3bf-3d16-48f0-91cf-a5391c31f587" >
+		<scheduler doc:name="Scheduler" doc:id="fb081310-78e0-4a1d-91cf-a33cb5f038b7" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="5" timeUnit="MINUTES" />
+			</scheduling-strategy>
+		</scheduler>
+		<logger level="INFO" doc:name="Logger" doc:id="149d18d6-c406-4573-a85c-7fcc0d9f5af8" message="start scheduler" />
+		<file:list doc:name="List" doc:id="2dfeea30-6c9c-4e5f-9ed6-445137aff2db" config-ref="File_Config" directoryPath="C:\SKF Lubrication\North America JDE SFTP Salesforce Integration\file_repository" />
+		<logger level="INFO" doc:name="Logger1" doc:id="af1c00c8-9ef1-423c-bb55-4ef2bafa4e5a" message='#["successfully pull all files from directory"]' />
+		<foreach doc:name="For Each" doc:id="b4cdaeaa-39c8-40cc-ba98-042d3c9aeb22" collection="#[payload.attributes.path]">
+			<logger level="INFO" doc:name="Logger" doc:id="633fdf32-b805-41df-8122-9f27d33d00f4" message="#[payload]" />
+			<file:read doc:name="Read" doc:id="85f12964-983d-429b-a435-2aa8ef850492" config-ref="File_Config" path="#[payload]" outputMimeType="application/csv"/>
+			<ee:transform doc:name="Transform Message" doc:id="2f1280a7-4539-4a63-8724-97e6b027431f" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[output application/json
+---
+payload]]></ee:set-payload>
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="fileName" ><![CDATA[attributes.fileName]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<choice doc:name="Choice" doc:id="893739fe-bafe-4038-bdf5-8ffb475d1dba" >
+				<when expression='#[vars.fileName == "Account.csv"]' >
+					<logger level="INFO" doc:name="Logger" doc:id="ff35b3e6-cdc0-4557-b699-f6460f6d84ce" message="account" />
+				</when>
+				<when expression='#[vars.fileName == "Order.csv"]' >
+					<logger level="INFO" doc:name="Logger" doc:id="35bd05cc-d257-487a-9c75-69a26609b388" message="Order" />
+				</when>
+				<when expression='#[vars.fileName == "Invoice.csv"]' >
+					<logger level="INFO" doc:name="logger" doc:id="2de58d65-e997-4d73-a41f-c86b1fce5c8c" message="Invoice" />
+				</when>
+				<otherwise >
+					<logger level="INFO" doc:name="Logger" doc:id="9c797612-886e-4dff-a187-4618cbe66ae4" message="There is no files in repository" />
+				</otherwise>
+			</choice>
+			<logger level="INFO" doc:name="Logger1" doc:id="5c8bbe48-a7bc-4c40-8b48-7f85c29f0488" message='#[{&#10;	"status":"successfully Inserted all records",&#10;	"records": payload&#10;}]' />
+		</foreach>
+	</flow>
+</mule>
